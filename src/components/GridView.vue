@@ -32,13 +32,6 @@ import * as exifr from "exifr";
 import ImageItem from "./ImageItem.vue";
 import FullscreenViewer from "./FullscreenViewer.vue";
 
-// const grouped = computed(()=> {
-//   const grouped = [][];
-//   let has = false;
-//   for (const image of orderedImages.value) {
-// if (image.)
-//   }
-// })
 const orderedImages = ref<{ name: string; url: string; metadata?: any }[]>([]);
 
 const showFullscreen = ref(false);
