@@ -27,7 +27,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, inject } from "vue";
-import Sortable from "sortablejs";
+import Sortable, { SortableEvent } from "sortablejs";
 import * as exifr from "exifr";
 import ImageItem from "./ImageItem.vue";
 import FullscreenViewer from "./FullscreenViewer.vue";
@@ -173,9 +173,10 @@ onMounted(() => {
   if (grid.value) {
     Sortable.create(grid.value, {
       animation: 150,
-      onEnd: (evt: { oldIndex: number; newIndex: number }) => {
-        const moved = orderedImages.value.splice(evt.oldIndex!, 1)[0];
-        orderedImages.value.splice(evt.newIndex!, 0, moved);
+      onEnd: (evt: SortableEvent) => {
+        const { oldIndex, newIndex } = evt;
+        const moved = orderedImages.value.splice(oldIndex!, 1)[0];
+        orderedImages.value.splice(newIndex!, 0, moved);
       },
     });
   }
