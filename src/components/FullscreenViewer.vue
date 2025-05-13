@@ -222,7 +222,8 @@ onBeforeUnmount(() => {
     bottom: 3.4rem;
     right: 4.2rem;
     color: transparent;
-    text-shadow: 0 0 2px #ff5100c4;
+    // text-shadow: 0 0 2px #ff5100c4;
+    text-shadow: 0 0 2px rgba(255, 81, 0, 1), #000 1px 1px 4px, #000 -1px -1px 4px, #000 -1px 1px 4px, #000 1px -1px 4px;
     font-weight: bold;
     font-style: italic;
 
@@ -234,13 +235,13 @@ onBeforeUnmount(() => {
     .timestamp {
       font-family: "DSEG7-Classic", monospace;
       font-size: 2rem;
-      margin-bottom: 0.5rem;
+      // margin-bottom: 0.5rem;
       display: flex;
 
       :first-child {
         position: relative;
         top: -0.5em;
-        right: -0.45em;
+        right: -0.85em;
       }
 
       span {
