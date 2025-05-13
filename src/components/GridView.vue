@@ -73,59 +73,94 @@ async function openFolder() {
   const toast = getToast("Loading files");
   folderHandle.value = dirHandle;
   orderedImages.value = [];
+
   let jsonOrder: string[] = [];
   let metadataMap: Record<string, any> = {};
-  let count = 0;
+  const fileHandles: Record<string, FileSystemFileHandle> = {};
+
+  // Step 1: Scan directory for JSON + build file handle map
   for await (const entry of dirHandle.values()) {
     if (entry.kind === "file") {
-      const file = await entry.getFile();
-      if (file.type.match(/^image\//) || file.type.match(/^video\//)) {
-        updateToast(`Checking files: ${++count}`);
-      }
-    }
-
-    if (entry.kind === "file" && entry.name === "image-viewer-data.json") {
-      const file = await entry.getFile();
-      const json = await file.text();
-      try {
-        const parsed = JSON.parse(json);
-        if (Array.isArray(parsed.order)) jsonOrder = parsed.order;
-        if (parsed.metadata) metadataMap = parsed.metadata;
-      } catch (e) {
-        console.error("Invalid JSON:", e);
-      }
-    }
-  }
-
-  const files: { name: string; url: string; metadata?: any }[] = [];
-  for await (const entry of dirHandle.values()) {
-    updateToast(`Loading files: ${files.length + 1}/${count}`);
-    if (entry.kind === "file") {
-      const file = await entry.getFile();
-      if (file.type.match(/^image\//) || file.type.match(/^video\//)) {
-        const url = URL.createObjectURL(file);
-        const fileData: { name: string; url: string; metadata?: any } = { name: file.name, url, metadata: metadataMap[file.name] || {} };
-
-        if (file.type.startsWith("image/")) {
-          try {
-            const exifData = await exifr.parse(file, { tiff: true, exif: true, gps: true });
-            if (exifData?.DateTimeOriginal) fileData.metadata.timestamp = exifData.DateTimeOriginal as Date;
-            if (exifData?.latitude && exifData?.longitude) fileData.metadata.gps = { lat: exifData.latitude, lon: exifData.longitude };
-          } catch (err) {
-            console.warn("Failed to parse EXIF with exifr:", err);
-          }
+      if (entry.name === "image-viewer-data.json") {
+        const file = await entry.getFile();
+        const json = await file.text();
+        try {
+          const parsed = JSON.parse(json);
+          if (Array.isArray(parsed.order)) jsonOrder = parsed.order;
+          if (parsed.metadata) metadataMap = parsed.metadata;
+        } catch (e) {
+          console.error("Invalid JSON:", e);
         }
-
-        files.push(fileData);
+      } else {
+        fileHandles[entry.name] = entry;
       }
     }
   }
 
-  orderedImages.value = jsonOrder.length ? (jsonOrder.map((name) => files.find((f) => f.name === name)).filter(Boolean) as typeof files) : files;
+  let count = 0;
+
+  // Step 2: Load files in JSON order
+  for (const name of jsonOrder) {
+    const entry = fileHandles[name];
+    if (!entry) continue;
+
+    const file = await entry.getFile();
+    if (!file.type.match(/^image\//) && !file.type.match(/^video\//)) continue;
+
+    updateToast(`Loading ordered files: ${++count}`);
+
+    const url = URL.createObjectURL(file);
+    const metadata = metadataMap[name] || {};
+    const fileData = { name, url, metadata };
+
+    if (file.type.startsWith("image/")) {
+      try {
+        const exifData = await exifr.parse(file, { tiff: true, exif: true, gps: true });
+        if (exifData?.DateTimeOriginal) fileData.metadata.timestamp = exifData.DateTimeOriginal as Date;
+        if (exifData?.latitude && exifData?.longitude) {
+          fileData.metadata.gps = { lat: exifData.latitude, lon: exifData.longitude };
+        }
+      } catch (err) {
+        console.warn("EXIF parse failed:", err);
+      }
+    }
+
+    orderedImages.value.push(fileData);
+    delete fileHandles[name]; // prevent duplicate loading
+  }
+
+  // Step 3: Load remaining image/video files
+  for (const name in fileHandles) {
+    const entry = fileHandles[name];
+    const file = await entry.getFile();
+    if (!file.type.match(/^image\//) && !file.type.match(/^video\//)) continue;
+
+    updateToast(`Loading remaining files: ${++count}`);
+
+    const url = URL.createObjectURL(file);
+    const metadata = metadataMap[name] || {};
+    const fileData = { name, url, metadata };
+
+    if (file.type.startsWith("image/")) {
+      try {
+        const exifData = await exifr.parse(file, { tiff: true, exif: true, gps: true });
+        if (exifData?.DateTimeOriginal) fileData.metadata.timestamp = exifData.DateTimeOriginal as Date;
+        if (exifData?.latitude && exifData?.longitude) {
+          fileData.metadata.gps = { lat: exifData.latitude, lon: exifData.longitude };
+        }
+      } catch (err) {
+        console.warn("EXIF parse failed:", err);
+      }
+    }
+
+    orderedImages.value.push(fileData);
+  }
+
   setTimeout(() => {
     toast.dismiss();
   }, 1500);
 }
+
 
 async function saveJson() {
   if (!folderHandle.value) return;
