@@ -1,8 +1,7 @@
 <template>
   <div class="app">
     <transition name="fade">
-      <div v-if="geoInit" class="loading">
-        <span class="footer" >{{ geoStatus }}</span>
+      <div v-if="init" class="loading">
         <div class="spinner">
           <span class="material-symbols-outlined">progress_activity</span>
         </div>
@@ -10,13 +9,31 @@
     </transition>
     <GridView />
     <SettingsMenu />
+    <div id="footer">
+      <div id="footer-left"></div>
+      <div id="footer-right"></div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { inject, onMounted, ref } from "vue";
 import GridView from "./components/GridView.vue";
 import SettingsMenu from "./components/SettingsMenu.vue";
-import { geoInit, geoStatus } from "./utils/geo";
+import { initGeo } from "./utils/geo";
+import { ToastPluginApi } from "vue-toast-notification";
+const toast = inject("$toast") as ToastPluginApi;
+
+const init = ref(true);
+
+onMounted(() => {
+const t = toast.info("Loading geo data");
+  initGeo();
+  init.value = false;
+
+  t.dismiss();
+  toast.info("Load complete");
+});
 </script>
 
 <style scoped lang="scss">
@@ -28,7 +45,7 @@ import { geoInit, geoStatus } from "./utils/geo";
   flex-direction: column;
 }
 .loading {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   span {
     font-size: 2em;
   }
@@ -44,50 +61,14 @@ import { geoInit, geoStatus } from "./utils/geo";
   transform: translateY(-50%);
 }
 
-</style>
-
-<style lang="scss">
-.fade-enter,
-.fade-leave-to {
-  opacity: 0;
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.5s ease;
-}
-
-.spinner {
-  animation: rotation 2s infinite ease-in-out;
-  transform-origin: center;
-  &.pause {
-    animation-play-state: paused;
-  }
-
-  @keyframes rotation {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(1079deg);
-    }
-  }
-}
-
-.fadeIn {
-  animation: fadeIn 0.5s forwards ease-in-out 0.2s;
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
-}
-
-.op0 {
-  opacity: 0;
+#footer {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  // height: 2rem;
+  // border-top: 1px solid black;
+  display: flex;
+  justify-content: space-between;
 }
 </style>

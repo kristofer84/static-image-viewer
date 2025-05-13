@@ -102,26 +102,68 @@ function formatTimestamp(timestamp: string | Date | undefined): string[] {
 
 let mouseTimer: ReturnType<typeof setTimeout>;
 
+let touchstartX = 0;
+let touchstartY = 0;
+let touchendX = 0;
+let touchendY = 0;
+
 onMounted(() => {
   const fb = document.getElementsByClassName("fullscreen-background")[0];
   fb.requestFullscreen?.();
   document.addEventListener("keydown", handleKeydown);
+  document.addEventListener("touchstart", touchStart, false);
+  document.addEventListener("touchend", touchEnd, false);
   document.addEventListener("fullscreenchange", handleFullscreenchange);
   if (isPlaying.value) startTimer();
 });
+
+function touchStart(event: TouchEvent) {
+  touchstartX = event.changedTouches[0].screenX;
+  touchstartY = event.changedTouches[0].screenY;
+}
+
+function touchEnd(event: TouchEvent) {
+  touchendX = event.changedTouches[0].screenX;
+  touchendY = event.changedTouches[0].screenY;
+  handleGesture();
+}
+
+function handleGesture() {
+  if (touchendX < touchstartX) {
+    nextImage();
+    startTimer();
+  }
+
+  if (touchendX > touchstartX) {
+    index.value = (index.value - 1 + props.images.length) % props.images.length;
+    startTimer();
+  }
+
+  // if (touchendY < touchstartY) {
+  //   console.log("Swiped Up");
+  // }
+
+  // if (touchendY > touchstartY) {
+  //   console.log("Swiped Down");
+  // }
+
+  if (touchendY === touchstartY) {
+    togglePlayPause();
+  }
+}
 
 onBeforeUnmount(() => {
   stopTimer();
   document.removeEventListener("keydown", handleKeydown);
   document.removeEventListener("fullscreenchange", handleFullscreenchange);
-
+  document.removeEventListener("touchstart", touchStart, false);
+  document.removeEventListener("touchend", touchEnd, false);
   // document.exitFullscreen?.();
 });
 </script>
 
 <style scoped lang="scss">
 @use "../styles/variables" as *;
-@import url("https://cdn.jsdelivr.net/npm/dseg@0.46.0/css/dseg.css");
 
 .mouseHidden {
   cursor: none;

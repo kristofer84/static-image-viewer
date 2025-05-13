@@ -26,11 +26,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, inject } from "vue";
 import Sortable from "sortablejs";
 import * as exifr from "exifr";
 import ImageItem from "./ImageItem.vue";
 import FullscreenViewer from "./FullscreenViewer.vue";
+import { ToastPluginApi } from "vue-toast-notification";
+const $toast = inject("$toast") as ToastPluginApi;
 
 const orderedImages = ref<{ name: string; url: string; metadata?: any }[]>([]);
 
@@ -53,14 +55,35 @@ function loaded(event: { name: string; orientation: "horizontal" | "vertical" })
   if (img) img.metadata.orientation = event.orientation;
 }
 
+function getToast(text: string) {
+  const div = document.createElement("div");
+  div.id = "dir-toast";
+  div.innerText = text;
+  const toast = $toast.info(div.outerHTML);
+  return toast;
+}
+
+function updateToast(text: string) {
+  const div = document.getElementById("dir-toast") as HTMLDivElement;
+  div.innerText = text;
+}
+
 async function openFolder() {
   const dirHandle = await (window as any).showDirectoryPicker();
+  const toast = getToast("Loading files");
   folderHandle.value = dirHandle;
   orderedImages.value = [];
   let jsonOrder: string[] = [];
   let metadataMap: Record<string, any> = {};
-
+  let count = 0;
   for await (const entry of dirHandle.values()) {
+    if (entry.kind === "file") {
+      const file = await entry.getFile();
+      if (file.type.match(/^image\//) || file.type.match(/^video\//)) {
+        count++;
+      }
+    }
+    
     if (entry.kind === "file" && entry.name === "image-viewer-data.json") {
       const file = await entry.getFile();
       const json = await file.text();
@@ -76,6 +99,7 @@ async function openFolder() {
 
   const files: { name: string; url: string; metadata?: any }[] = [];
   for await (const entry of dirHandle.values()) {
+    updateToast(`Loading files: ${files.length + 1}/${count}`);
     if (entry.kind === "file") {
       const file = await entry.getFile();
       if (file.type.match(/^image\//) || file.type.match(/^video\//)) {
@@ -98,6 +122,7 @@ async function openFolder() {
   }
 
   orderedImages.value = jsonOrder.length ? (jsonOrder.map((name) => files.find((f) => f.name === name)).filter(Boolean) as typeof files) : files;
+  // toast.dismiss();
 }
 
 async function saveJson() {

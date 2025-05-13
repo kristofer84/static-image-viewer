@@ -10,33 +10,29 @@ type Place = {
 
 const distance = (a: Place, b: Place) => Math.pow(a.lat - b.lat, 2) + Math.pow(a.lon - b.lon, 2);
 export const geoInit = ref(true);
-export const geoStatus = ref("");
 const dimensions: (keyof Place)[] = ["lat", "lon"];
 
 let tree: kdTree<Place> | null = null;
 
 export async function initGeo() {
-  geoStatus.value = "Loading global geo data...";
   tree = new kdTree<Place>([], distance, dimensions);
 
-  await import("../data/data.json").then((data) => {
-    const d = data as { default: { [country: string]: Place[] } };
-    for (const [country, places] of Object.entries(d.default)) {
+  await fetch("./data/data.json").then(async (data) => {
+    const json = (await data.json()) as { [country: string]: Place[] };
+    for (const [country, places] of Object.entries(json)) {
       for (const place of places) {
         tree?.insert({ ...place, country } as Place);
       }
     }
   });
 
-  geoStatus.value = "Loading local geo data for SE..";
-  await import("../data/se.json").then((data) => {
-    const places = data as { default: Place[] };
-    for (const place of places.default) {
+  await fetch("./data/se.json").then(async (data) => {
+    const places = (await data.json()) as Place[];
+    for (const place of places) {
       tree?.insert(place);
     }
   });
 
-  geoStatus.value = "Geo data loaded";
   console.log("Geo tree initialized.");
   geoInit.value = false;
 }

@@ -5,7 +5,52 @@ body {
   height: 100%;
 }
 
-body, button {
+body,
+button {
   font-family: Work Sans, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+.fade-enter,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.5s ease;
+}
+
+.spinner {
+  animation: rotation 2s infinite ease-in-out;
+  transform-origin: center;
+  &.pause {
+    animation-play-state: paused;
+  }
+
+  @keyframes rotation {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(1079deg);
+    }
+  }
+}
+
+.fadeIn {
+  animation: fadeIn 0.5s forwards ease-in-out 0.2s;
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+.op0 {
+  opacity: 0;
 }
