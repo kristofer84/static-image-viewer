@@ -18,15 +18,15 @@
         Export XMP
       </button>
     </div>
-    <div ref="grid" class="grid">
+    <transition-group name="fade-move" tag="div" ref="grid" class="grid">
       <ImageItem v-for="(image, index) in orderedImages" :key="image.name" :image="image" @click="openFullscreen(index)" @loaded="loaded" />
-    </div>
+    </transition-group>
     <FullscreenViewer v-if="showFullscreen" :images="orderedImages" :startIndex="fullscreenIndex" @exit="showFullscreen = false" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, inject } from "vue";
+import { ref, onMounted, inject, getCurrentInstance } from "vue";
 import Sortable, { SortableEvent } from "sortablejs";
 import * as exifr from "exifr";
 import ImageItem from "./ImageItem.vue";
@@ -170,8 +170,12 @@ async function saveSidecars() {
 }
 
 onMounted(() => {
-  if (grid.value) {
-    Sortable.create(grid.value, {
+  const instance = getCurrentInstance();
+  const gridComponent = instance?.proxy?.$refs.grid as { $el: any };
+  const gridEl = gridComponent?.$el || gridComponent;
+
+  if (gridEl instanceof HTMLElement) {
+    Sortable.create(gridEl, {
       animation: 150,
       onEnd: (evt: SortableEvent) => {
         const { oldIndex, newIndex } = evt;
@@ -216,5 +220,12 @@ onMounted(() => {
     align-items: center;
     gap: 0.5rem;
   }
+}
+
+.fade-move {
+  transition: transform 0.15s ease;
+}
+.fade-move-move {
+  transition: transform 0.15s ease;
 }
 </style>
