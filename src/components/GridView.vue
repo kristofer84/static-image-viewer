@@ -59,7 +59,7 @@ function getToast(text: string) {
   const div = document.createElement("div");
   div.id = "dir-toast";
   div.innerText = text;
-  const toast = $toast.info(div.outerHTML);
+  const toast = $toast.info(div.outerHTML, { duration: 0 });
   return toast;
 }
 
@@ -80,10 +80,10 @@ async function openFolder() {
     if (entry.kind === "file") {
       const file = await entry.getFile();
       if (file.type.match(/^image\//) || file.type.match(/^video\//)) {
-        count++;
+        updateToast(`Checking files: ${++count}`);
       }
     }
-    
+
     if (entry.kind === "file" && entry.name === "image-viewer-data.json") {
       const file = await entry.getFile();
       const json = await file.text();
@@ -122,7 +122,9 @@ async function openFolder() {
   }
 
   orderedImages.value = jsonOrder.length ? (jsonOrder.map((name) => files.find((f) => f.name === name)).filter(Boolean) as typeof files) : files;
-  // toast.dismiss();
+  setTimeout(() => {
+    toast.dismiss();
+  }, 1500);
 }
 
 async function saveJson() {
