@@ -21,5 +21,5 @@
   "start_url": "./",
   "display": "standalone",
   "scope": "/",
-  "version": "1.102.0"
+  "version": "1.110.0"
 }

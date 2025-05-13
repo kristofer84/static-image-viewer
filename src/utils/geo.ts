@@ -18,18 +18,24 @@ export async function initGeo() {
   tree = new kdTree<Place>([], distance, dimensions);
 
   await fetch("./data/data.json").then(async (data) => {
-    const json = (await data.json()) as { [country: string]: Place[] };
+    const json = (await data.json()) as {
+      [country: string]: {
+        [location: string]: number[];
+      };
+    };
     for (const [country, places] of Object.entries(json)) {
-      for (const place of places) {
-        tree?.insert({ ...place, country } as Place);
+      for (const [location, coords] of Object.entries(places)) {
+        tree?.insert({ country, location, lat: coords[0], lon: coords[1] } as Place);
       }
     }
   });
 
   await fetch("./data/se.json").then(async (data) => {
-    const places = (await data.json()) as Place[];
-    for (const place of places) {
-      tree?.insert(place);
+    const places = (await data.json()) as {
+      [location: string]: number[];
+    };
+    for (const [location, coords] of Object.entries(places)) {
+      tree?.insert({ location, lat: coords[0], lon: coords[1] } as Place);
     }
   });
 
