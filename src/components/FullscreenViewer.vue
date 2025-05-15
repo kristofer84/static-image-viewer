@@ -4,7 +4,7 @@
       <transition name="fade">
         <div class="media-wrapper" :key="currentImage.url">
           <video v-if="isVideo(currentImage.url)" :src="currentImage.url" autoplay loop muted controls class="media"></video>
-          <img v-else :src="currentImage.url" :alt="currentImage.name" class="media" />
+          <img v-else :src="currentUrl" :alt="currentImage.name" class="media" />
           <div v-if="showOverlay" class="overlay">
             <div class="timestamp dseg">
               <span v-for="part of formatTimestamp(currentImage.metadata?.timestamp)">{{ part }}</span>
@@ -22,10 +22,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
 import { nearest } from "../utils/geo";
 
-const props = defineProps<{ images: { name: string; url: string; metadata?: any }[]; startIndex: number }>();
+const props = defineProps<{
+  folderHandle: any;
+  images: { name: string; url: string; metadata?: any }[];
+  startIndex: number;
+}>();
 const emit = defineEmits(["exit"]);
 
 const index = ref(props.startIndex);
@@ -33,10 +37,21 @@ const isPlaying = ref(true);
 const showControls = ref(false);
 const visible = ref(true);
 const showOverlay = ref(localStorage.getItem("showOverlay") !== "false");
-
+const currentUrl = ref();
 const currentImage = computed(() => props.images[index.value]);
 const timePerImage = +(localStorage.getItem("timePerImage") || 2) * 1000;
 let timer: ReturnType<typeof setInterval>;
+
+watch(
+  () => currentImage.value,
+  () => loadImage()
+);
+
+async function loadImage() {
+  const fileHandle = await props.folderHandle.getFileHandle(currentImage.value.name);
+  const file = await fileHandle.getFile();
+  currentUrl.value = URL.createObjectURL(file);
+}
 
 function nextImage() {
   index.value = (index.value + 1) % props.images.length;
@@ -108,6 +123,7 @@ let touchendX = 0;
 let touchendY = 0;
 
 onMounted(() => {
+  loadImage();
   const fb = document.getElementsByClassName("fullscreen-background")[0];
   fb.requestFullscreen?.();
   document.addEventListener("keydown", handleKeydown);

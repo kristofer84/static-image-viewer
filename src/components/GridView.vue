@@ -21,7 +21,7 @@
     <transition-group name="fade-move" tag="div" ref="grid" class="grid">
       <ImageItem v-for="(image, index) in orderedImages" :key="image.name" :image="image" @click="openFullscreen(index)" @loaded="loaded" />
     </transition-group>
-    <FullscreenViewer v-if="showFullscreen" :images="orderedImages" :startIndex="fullscreenIndex" @exit="showFullscreen = false" />
+    <FullscreenViewer v-if="showFullscreen" :folderHandle="folderHandle" :images="orderedImages" :startIndex="fullscreenIndex" @exit="showFullscreen = false" />
   </div>
 </template>
 
@@ -31,8 +31,7 @@ import Sortable, { SortableEvent } from "sortablejs";
 import * as exifr from "exifr";
 import ImageItem from "./ImageItem.vue";
 import FullscreenViewer from "./FullscreenViewer.vue";
-import { ToastPluginApi } from "vue-toast-notification";
-const $toast = inject("$toast") as ToastPluginApi;
+import { ReusableToast } from "../utils/ReusableToast";
 
 const orderedImages = ref<{ name: string; url: string; metadata?: any }[]>([]);
 
@@ -55,22 +54,9 @@ function loaded(event: { name: string; orientation: "horizontal" | "vertical" })
   if (img) img.metadata.orientation = event.orientation;
 }
 
-function getToast(text: string) {
-  const div = document.createElement("div");
-  div.id = "dir-toast";
-  div.innerText = text;
-  const toast = $toast.info(div.outerHTML, { duration: 0 });
-  return toast;
-}
-
-function updateToast(text: string) {
-  const div = document.getElementById("dir-toast") as HTMLDivElement;
-  div.innerText = text;
-}
-
 async function openFolder() {
   const dirHandle = await (window as any).showDirectoryPicker();
-  const toast = getToast("Loading files");
+  const toast = new ReusableToast("Loading files", { duration: 0 });
   folderHandle.value = dirHandle;
   orderedImages.value = [];
 
@@ -78,11 +64,14 @@ async function openFolder() {
   let metadataMap: Record<string, any> = {};
   const fileHandles: Record<string, FileSystemFileHandle> = {};
 
+  let count = 0;
   // Step 1: Scan directory for JSON + build file handle map
   for await (const entry of dirHandle.values()) {
     if (entry.kind === "file") {
+      const file = await entry.getFile();
+      if (file.type.match(/^image\//) && !file.type.match(/^video\//)) toast.setMessage(`Counting files: ${++count}`);
       if (entry.name === "image-viewer-data.json") {
-        const file = await entry.getFile();
+        // const file = await entry.getFile();
         const json = await file.text();
         try {
           const parsed = JSON.parse(json);
@@ -97,8 +86,7 @@ async function openFolder() {
     }
   }
 
-  let count = 0;
-
+  let loadCount = 0;
   // Step 2: Load files in JSON order
   for (const name of jsonOrder) {
     const entry = fileHandles[name];
@@ -107,9 +95,17 @@ async function openFolder() {
     const file = await entry.getFile();
     if (!file.type.match(/^image\//) && !file.type.match(/^video\//)) continue;
 
-    updateToast(`Loading ordered files: ${++count}`);
+    let thumbUrl = await getThumbUrl(name);
+    if (saveThumbnails.value && !thumbUrl) {
+      toast.setMessage(`Loading files and generating thumbnails ${++loadCount}/${count}`);
+      await createAndSaveThumbnail(file, name);
+      thumbUrl = await getThumbUrl(name);
+    } else {
+      toast.setMessage(`Loading file ${++loadCount}/${count}`);
+    }
 
-    const url = URL.createObjectURL(file);
+    const url = thumbUrl || URL.createObjectURL(file);
+
     const metadata = metadataMap[name] || {};
     const fileData = { name, url, metadata };
 
@@ -135,9 +131,17 @@ async function openFolder() {
     const file = await entry.getFile();
     if (!file.type.match(/^image\//) && !file.type.match(/^video\//)) continue;
 
-    updateToast(`Loading remaining files: ${++count}`);
+    let thumbUrl = await getThumbUrl(name);
+    if (saveThumbnails.value && !thumbUrl) {
+      toast.setMessage(`Loading files and generating thumbnails ${++loadCount}/${count}`);
+      await createAndSaveThumbnail(file, name);
+      thumbUrl = await getThumbUrl(name);
+    } else {
+      toast.setMessage(`Loading file ${++loadCount}/${count}`);
+    }
 
-    const url = URL.createObjectURL(file);
+    const url = thumbUrl || URL.createObjectURL(file);
+    // const url = URL.createObjectURL(file);
     const metadata = metadataMap[name] || {};
     const fileData = { name, url, metadata };
 
@@ -160,7 +164,6 @@ async function openFolder() {
     toast.dismiss();
   }, 1500);
 }
-
 
 async function saveJson() {
   if (!folderHandle.value) return;
@@ -220,6 +223,40 @@ onMounted(() => {
     });
   }
 });
+
+const saveThumbnails = ref(localStorage.getItem("saveThumbs") === "true");
+
+async function getThumbUrl(name: string) {
+  try {
+    const thumbsDir = await folderHandle.value.getDirectoryHandle("thumbs", { create: false });
+    const thumbHandle = await thumbsDir.getFileHandle(name);
+    const file = await thumbHandle.getFile();
+    return URL.createObjectURL(file);
+  } catch {
+    return null;
+  }
+}
+
+async function createAndSaveThumbnail(file: File, name: string) {
+  try {
+    const thumbsDir = await folderHandle.value.getDirectoryHandle("thumbs", { create: true });
+    const img = await createImageBitmap(file);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d")!;
+    const maxDim = 512;
+    const scale = Math.min(maxDim / img.width, maxDim / img.height);
+    canvas.width = img.width * scale;
+    canvas.height = img.height * scale;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob>((res) => canvas.toBlob((b) => res(b!), "image/jpeg", 0.7));
+    const handle = await thumbsDir.getFileHandle(name, { create: true });
+    const writable = await handle.createWritable();
+    await writable.write(blob);
+    await writable.close();
+  } catch (err) {
+    console.warn("Thumbnail creation failed:", err);
+  }
+}
 </script>
 
 <style scoped lang="scss">

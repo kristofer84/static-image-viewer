@@ -17,11 +17,10 @@
 </template>
 
 <script setup lang="ts">
-import { h, inject, onMounted, ref } from "vue";
+import { onMounted, ref } from "vue";
 import GridView from "./components/GridView.vue";
 import SettingsMenu from "./components/SettingsMenu.vue";
 import { initGeo } from "./utils/geo";
-import { ToastPluginApi } from "vue-toast-notification";
 import { ReusableToast } from "./utils/ReusableToast";
 
 const init = ref(true);

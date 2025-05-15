@@ -8,27 +8,26 @@
         Time per image (s):
         <input type="number" v-model.number="timePerImage" min="0.1" step="0.1" />
       </label>
-      <label>
-        <input type="checkbox" v-model="showOverlay" /> Show overlay
-      </label>
-      <label>
-        <input type="checkbox" v-model="autoSave" /> Auto-save JSON
-      </label>
+      <label> <input type="checkbox" v-model="showOverlay" /> Show overlay </label>
+      <label> <input type="checkbox" v-model="autoSave" /> Auto-save JSON </label>
+      <label> <input type="checkbox" v-model="saveThumbs" /> Save thumbnails </label>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch } from "vue";
 
 const visible = ref(false);
-const timePerImage = ref(+localStorage.getItem('timePerImage')! || 2);
-const showOverlay = ref(localStorage.getItem('showOverlay') !== 'false');
-const autoSave = ref(localStorage.getItem('autoSave') === 'true');
+const timePerImage = ref(+localStorage.getItem("timePerImage")! || 2);
+const showOverlay = ref(localStorage.getItem("showOverlay") !== "false");
+const autoSave = ref(localStorage.getItem("autoSave") === "true");
+const saveThumbs = ref(localStorage.getItem("saveThumbs") === "true");
 
-watch(timePerImage, val => localStorage.setItem('timePerImage', String(val)));
-watch(showOverlay, val => localStorage.setItem('showOverlay', String(val)));
-watch(autoSave, val => localStorage.setItem('autoSave', String(val)));
+watch(timePerImage, (val) => localStorage.setItem("timePerImage", String(val)));
+watch(showOverlay, (val) => localStorage.setItem("showOverlay", String(val)));
+watch(autoSave, (val) => localStorage.setItem("autoSave", String(val)));
+watch(saveThumbs, (val) => localStorage.setItem("saveThumbs", String(val)));
 </script>
 
 <style scoped lang="scss">
