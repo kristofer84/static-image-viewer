@@ -31,7 +31,7 @@ import Sortable, { SortableEvent } from "sortablejs";
 import * as exifr from "exifr";
 import ImageItem from "./ImageItem.vue";
 import FullscreenViewer from "./FullscreenViewer.vue";
-import { ReusableToast } from "../utils/ReusableToast";
+import { ReusableToast } from "../utils/reusableToast";
 
 const orderedImages = ref<{ name: string; url: string; metadata?: any }[]>([]);
 
