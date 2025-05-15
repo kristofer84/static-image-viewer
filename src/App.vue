@@ -17,22 +17,22 @@
 </template>
 
 <script setup lang="ts">
-import { inject, onMounted, ref } from "vue";
+import { h, inject, onMounted, ref } from "vue";
 import GridView from "./components/GridView.vue";
 import SettingsMenu from "./components/SettingsMenu.vue";
 import { initGeo } from "./utils/geo";
 import { ToastPluginApi } from "vue-toast-notification";
-const toast = inject("$toast") as ToastPluginApi;
+import { ReusableToast } from "./utils/ReusableToast";
 
 const init = ref(true);
 
-onMounted(() => {
-const t = toast.info("Loading geo data");
-  initGeo();
+onMounted(async () => {
+  const toast = new ReusableToast("Loading geo data", { duration: 0 });
+  await initGeo();
   init.value = false;
 
-  t.dismiss();
-  toast.info("Load complete");
+  toast.setMessage("Load complete");
+  setTimeout(() => toast.dismiss(), 1000);
 });
 </script>
 
