@@ -21,7 +21,7 @@ import { onMounted, ref } from "vue";
 import GridView from "./components/GridView.vue";
 import SettingsMenu from "./components/SettingsMenu.vue";
 import { initGeo } from "./utils/geo";
-import { ReusableToast } from "./utils/ReusableToast";
+import { ReusableToast } from "./utils/reusableToast";
 
 const init = ref(true);
 
